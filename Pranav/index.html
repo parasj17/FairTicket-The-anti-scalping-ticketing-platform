@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FairTicket — Anti-Scalping Ticketing Platform</title>
+  <meta name="description" content="Buy, sell, and manage event tickets fairly. FairTicket prevents scalping with real-time seat locking, verified identity, and capped resale prices." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── TOAST NOTIFICATION ── -->
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+  <!-- ── LOADING OVERLAY ── -->
+  <div id="loader" class="loader hidden">
+    <div class="loader-ring"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       AUTH VIEW (Login / Register)
+  ══════════════════════════════════════════════ -->
+  <div id="view-auth" class="view active">
+    <div class="auth-bg">
+      <div class="auth-orb orb-1"></div>
+      <div class="auth-orb orb-2"></div>
+      <div class="auth-orb orb-3"></div>
+    </div>
+    <div class="auth-card glass">
+      <div class="auth-logo">
+        <span class="logo-icon">🎟️</span>
+        <span class="logo-text">FairTicket</span>
+      </div>
+      <p class="auth-tagline">The anti-scalping ticketing platform</p>
+
+      <!-- Tab switcher -->
+      <div class="auth-tabs" role="tablist">
+        <button id="tab-login" class="auth-tab active" role="tab" aria-selected="true" onclick="showAuthTab('login')">Sign In</button>
+        <button id="tab-register" class="auth-tab" role="tab" aria-selected="false" onclick="showAuthTab('register')">Register</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="form-login" class="auth-form" onsubmit="handleLogin(event)">
+        <div class="field-group">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="field-group">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button id="btn-login" type="submit" class="btn btn-primary btn-full">Sign In</button>
+      </form>
+
+      <!-- Register form -->
+      <form id="form-register" class="auth-form hidden" onsubmit="handleRegister(event)">
+        <div class="field-group">
+          <label for="reg-name">Full Name</label>
+          <input id="reg-name" type="text" placeholder="Jane Smith" required autocomplete="name" />
+        </div>
+        <div class="field-group">
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="field-group">
+          <label for="reg-phone">Phone (optional)</label>
+          <input id="reg-phone" type="tel" placeholder="+1 555 0100" autocomplete="tel" />
+        </div>
+        <div class="field-group">
+          <label for="reg-password">Password</label>
+          <input id="reg-password" type="password" placeholder="Min 8 characters" required minlength="8" autocomplete="new-password" />
+        </div>
+        <button id="btn-register" type="submit" class="btn btn-primary btn-full">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       MAIN APP SHELL (after login)
+  ══════════════════════════════════════════════ -->
+  <div id="view-app" class="view hidden">
+
+    <!-- NAV -->
+    <nav class="navbar glass" role="navigation" aria-label="Main navigation">
+      <a class="nav-brand" href="#" onclick="navigate('events')">
+        <span class="logo-icon">🎟️</span>
+        <span class="logo-text">FairTicket</span>
+      </a>
+      <div class="nav-links">
+        <button id="nav-events"    class="nav-link" onclick="navigate('events')">Events</button>
+        <button id="nav-mytickets" class="nav-link" onclick="navigate('mytickets')">My Tickets</button>
+        <button id="nav-resale"    class="nav-link" onclick="navigate('resale')">Resale</button>
+        <button id="nav-queue"     class="nav-link" onclick="navigate('queue')">My Queue</button>
+        <button id="nav-analytics" class="nav-link admin-only hidden" onclick="navigate('analytics')">Analytics</button>
+        <button id="nav-scan"      class="nav-link admin-only hidden" onclick="navigate('scan')">Scan</button>
+      </div>
+      <div class="nav-user">
+        <span id="nav-username" class="nav-username"></span>
+        <button class="btn btn-ghost btn-sm" id="btn-logout" onclick="handleLogout()">Sign Out</button>
+      </div>
+      <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu" onclick="toggleMobileMenu()">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+
+    <!-- Mobile drawer -->
+    <div id="mobile-menu" class="mobile-menu hidden">
+      <button class="nav-link" onclick="navigate('events');toggleMobileMenu()">Events</button>
+      <button class="nav-link" onclick="navigate('mytickets');toggleMobileMenu()">My Tickets</button>
+      <button class="nav-link" onclick="navigate('resale');toggleMobileMenu()">Resale</button>
+      <button class="nav-link" onclick="navigate('queue');toggleMobileMenu()">My Queue</button>
+      <button class="nav-link admin-only hidden" onclick="navigate('analytics');toggleMobileMenu()">Analytics</button>
+      <button class="nav-link admin-only hidden" onclick="navigate('scan');toggleMobileMenu()">Scan</button>
+      <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Sign Out</button>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <main class="main-content" id="main-content">
+
+      <!-- ── EVENTS PAGE ── -->
+      <section id="page-events" class="page active">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Upcoming Events</h1>
+            <p class="page-subtitle">Select an event to browse seats and book your ticket</p>
+          </div>
+        </div>
+        <div id="events-grid" class="events-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </section>
+
+      <!-- ── SEATS PAGE ── -->
+      <section id="page-seats" class="page hidden">
+        <div class="page-header">
+          <button class="btn btn-ghost btn-sm back-btn" onclick="navigate('events')">← Back to Events</button>
+          <div>
+            <h1 id="seats-event-title" class="page-title">Select a Seat</h1>
+            <p id="seats-event-meta" class="page-subtitle"></p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="joinQueue()">Join Queue</button>
+        </div>
+
+        <!-- Legend -->
+        <div class="seat-legend">
+          <span class="legend-item"><span class="legend-dot available"></span>Available</span>
+          <span class="legend-item"><span class="legend-dot locked"></span>Locked</span>
+          <span class="legend-item"><span class="legend-dot purchased"></span>Purchased</span>
+        </div>
+
+        <div id="seat-map" class="seat-map"></div>
+
+        <!-- Sticky selection bar -->
+        <div id="seat-selection-bar" class="seat-selection-bar hidden">
+          <div class="sel-info">
+            <span id="sel-count" class="sel-count">0 seats selected</span>
+            <span id="sel-limit" class="sel-limit"></span>
+          </div>
+          <div class="sel-right">
+            <span id="sel-total" class="sel-total"></span>
+            <button class="btn btn-primary" onclick="openBookingModal()">Book Selected Seats →</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearSeatSelection()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Booking confirmation modal -->
+        <div id="booking-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+          <div class="modal glass">
+            <h2 class="modal-title">Confirm Booking</h2>
+          <p class="modal-description">Review your selected seats below.</p>
+            <div id="booking-summary" class="booking-summary"></div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onclick="closeModal('booking-modal')">Cancel</button>
+              <button id="btn-confirm-book" class="btn btn-primary" onclick="confirmBooking()">Confirm &amp; Purchase</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── MY TICKETS PAGE ── -->
+      <section id="page-mytickets" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">My Tickets</h1>
+            <p class="page-subtitle">All your purchased tickets</p>
+          </div>
+        </div>
+        <div id="my-tickets-grid" class="tickets-grid"></div>
+
+        <!-- Resale listing modal -->
+        <div id="resale-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+          <div class="modal glass">
+            <h2 class="modal-title">List Ticket for Resale</h2>
+            <p class="modal-description">Price cannot exceed the original ticket price.</p>
+            <div class="field-group">
+              <label for="resale-price">Resale Price ($)</label>
+              <input id="resale-price" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onclick="closeModal('resale-modal')">Cancel</button>
+              <button id="btn-confirm-resale" class="btn btn-primary" onclick="confirmResaleListing()">List for Resale</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── RESALE MARKETPLACE PAGE ── -->
+      <section id="page-resale" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Resale Marketplace</h1>
+            <p class="page-subtitle">Buy tickets resold at or below original price — scalping is impossible</p>
+          </div>
+        </div>
+        <div class="resale-banner">
+          <span class="resale-badge">🛡️ Anti-Scalping Protected</span>
+          <span>All prices enforced by database-level triggers. No ticket can be listed above its original price.</span>
+        </div>
+        <div id="resale-grid" class="resale-grid"></div>
+      </section>
+
+      <!-- ── QUEUE STATUS PAGE ── -->
+      <section id="page-queue" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">My Queue Positions</h1>
+            <p class="page-subtitle">Your active queue entries — you'll be notified when seats open</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadQueueStatus()">Refresh</button>
+        </div>
+        <div id="queue-status-list" class="queue-status-list"></div>
+      </section>
+
+      <!-- ── ANALYTICS PAGE ── -->
+      <section id="page-analytics" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Analytics</h1>
+            <p class="page-subtitle">Live platform statistics</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAnalytics()">Refresh</button>
+        </div>
+
+        <!-- KPI cards -->
+        <div id="kpi-grid" class="kpi-grid">
+          <div class="kpi-card glass">
+            <div class="kpi-label">Total Revenue</div>
+            <div id="kpi-revenue" class="kpi-value">—</div>
+          </div>
+          <div class="kpi-card glass">
+            <div class="kpi-label">Active Resale Listings</div>
+            <div id="kpi-active-listings" class="kpi-value">—</div>
+          </div>
+          <div class="kpi-card glass">
+            <div class="kpi-label">Avg Resale Price</div>
+            <div id="kpi-avg-resale" class="kpi-value">—</div>
+          </div>
+          <div class="kpi-card glass">
+            <div class="kpi-label">Completed Resales</div>
+            <div id="kpi-sold-listings" class="kpi-value">—</div>
+          </div>
+        </div>
+
+        <div class="analytics-bottom">
+          <!-- Tickets sold per event -->
+          <div class="analytics-card glass">
+            <h2 class="analytics-card-title">Tickets Sold per Event</h2>
+            <div id="tickets-sold-list" class="bar-chart-list"></div>
+          </div>
+
+          <!-- Queue sizes -->
+          <div class="analytics-card glass">
+            <h2 class="analytics-card-title">Queue Sizes</h2>
+            <div id="queue-sizes-list" class="bar-chart-list"></div>
+          </div>
+        </div>
+
+        <!-- Create Event form - admin only -->
+        <div class="analytics-card glass" style="margin-top:1.5rem;">
+          <h2 class="analytics-card-title">➕ Create New Event</h2>
+          <form id="form-create-event" onsubmit="handleCreateEvent(event)" class="create-event-form">
+            <div class="create-event-grid">
+              <div class="field-group">
+                <label for="ev-name">Event Name</label>
+                <input id="ev-name" type="text" placeholder="IPL Final 2027" required />
+              </div>
+              <div class="field-group">
+                <label for="ev-venue">Venue</label>
+                <input id="ev-venue" type="text" placeholder="Wankhede Stadium, Mumbai" required />
+              </div>
+              <div class="field-group">
+                <label for="ev-date">Event Date</label>
+                <input id="ev-date" type="date" required />
+              </div>
+              <div class="field-group">
+                <label for="ev-price">Ticket Price (₹)</label>
+                <input id="ev-price" type="number" min="1" step="0.01" placeholder="2500" required />
+              </div>
+              <div class="field-group">
+                <label for="ev-sale-start">Sale Start (Date &amp; Time)</label>
+                <input id="ev-sale-start" type="datetime-local" required />
+              </div>
+              <div class="field-group">
+                <label for="ev-sections">Sections (comma-separated)</label>
+                <input id="ev-sections" type="text" placeholder="A,B,C" value="A,B,C" />
+              </div>
+              <div class="field-group">
+                <label for="ev-rows">Rows per Section</label>
+                <input id="ev-rows" type="number" min="1" max="20" value="4" />
+              </div>
+              <div class="field-group">
+                <label for="ev-seats">Seats per Row</label>
+                <input id="ev-seats" type="number" min="1" max="30" value="5" />
+              </div>
+            </div>
+            <div style="margin-top:1rem;">
+              <button id="btn-create-event" type="submit" class="btn btn-primary">Create Event &amp; Generate Seats</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Existing events list - admin only -->
+        <div class="analytics-card glass" style="margin-top:1.5rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2 class="analytics-card-title" style="margin-bottom:0">🗓️ Manage Events</h2>
+            <button class="btn btn-secondary btn-sm" onclick="loadAdminEvents()">Refresh</button>
+          </div>
+          <div id="admin-events-list"></div>
+        </div>
+
+        <!-- Suspicious logins -->
+        <div class="analytics-card glass" style="margin-top:1.5rem;">
+          <h2 class="analytics-card-title">⚠️ Suspicious Login IPs</h2>
+          <div id="suspicious-logins-list"></div>
+        </div>
+      </section>
+
+      <!-- ── SCAN PAGE ── -->
+      <section id="page-scan" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Entry Scanner</h1>
+            <p class="page-subtitle">Validate tickets at the gate — duplicate scans are rejected</p>
+          </div>
+        </div>
+        <div class="scan-card glass">
+          <div class="scan-icon">🔍</div>
+          <form onsubmit="handleScan(event)" class="scan-form">
+            <div class="field-group">
+              <label for="scan-ticket-id">Ticket ID (UUID)</label>
+              <input id="scan-ticket-id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required spellcheck="false" autocomplete="off" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Validate Ticket</button>
+          </form>
+          <div id="scan-result" class="scan-result hidden"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
